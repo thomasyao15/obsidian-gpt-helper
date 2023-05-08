@@ -1,6 +1,5 @@
 import { Notice, Plugin } from "obsidian";
-
-// Remember to rename these classes and interfaces!
+import fs from "fs";
 
 interface MyPluginSettings {
 	mySetting: string;
@@ -12,34 +11,74 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
+	updateFilePathInterval: NodeJS.Timeout;
 
 	async onload() {
 		await this.loadSettings();
 
+		this.updateFilePathInterval = setInterval(() => {
+			const activeFile = this.app.workspace.getActiveFile();
+			let filePath = activeFile
+				? this.app.vault.adapter.getResourcePath(activeFile.path)
+				: null;
+
+			if (filePath) {
+				// Remove the "app://local" prefix from the file path
+				filePath = filePath.replace(/^app:\/\/local/, "");
+
+				// Remove the "?number" suffix from the file path
+				filePath = filePath.replace(/\?\d+$/, "");
+
+				// Replace the "%20" characters with escaped spaces
+				filePath = filePath.replace(/%20/g, "\\ ");
+			}
+
+			fs.writeFile(
+				"/tmp/obsidian-active-file.txt",
+				filePath ?? "",
+				(err) => {
+					if (err) {
+						console.error("Error writing active file path:", err);
+					}
+				}
+			);
+		}, 1000); // Update the file every 1 second (1000 ms)
+
+		// Create a ribbon icon that shows the currently open file path
 		const ribbonIconEl = this.addRibbonIcon(
-			"dice",
-			"Sample Plugin",
+			"file",
+			"Get active file path",
 			async (evt: MouseEvent) => {
 				const activeFile = this.app.workspace.getActiveFile();
-				if (!activeFile) {
+				let filePath = activeFile
+					? this.app.vault.adapter.getResourcePath(activeFile.path)
+					: null;
+
+				if (filePath) {
+					// Remove the "app://local" prefix from the file path
+					filePath = filePath.replace(/^app:\/\/local/, "");
+
+					// Remove the "?number" suffix from the file path
+					filePath = filePath.replace(/\?\d+$/, "");
+
+					// Replace the "%20" characters with escaped spaces
+					filePath = filePath.replace(/%20/g, "\\ ");
+				}
+				if (!filePath) {
 					new Notice("No active file!");
 				} else {
-					const fullPath = this.app.vault.adapter.getResourcePath(
-						activeFile.path
-					);
-					new Notice(`Currently open file path: ${fullPath}`);
+					new Notice(`Currently open file path: ${filePath}`);
 				}
 			}
 		);
 
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass("my-plugin-ribbon-class");
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		// this.addSettingTab(new SampleSettingTab(this.app, this));
 	}
 
-	onunload() {}
+	onunload() {
+		clearInterval(this.updateFilePathInterval);
+	}
 
 	async loadSettings() {
 		this.settings = Object.assign(
@@ -53,34 +92,3 @@ export default class MyPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 }
-
-// class SampleSettingTab extends PluginSettingTab {
-// 	plugin: MyPlugin;
-
-// 	constructor(app: App, plugin: MyPlugin) {
-// 		super(app, plugin);
-// 		this.plugin = plugin;
-// 	}
-
-// 	display(): void {
-// 		const { containerEl } = this;
-
-// 		containerEl.empty();
-
-// 		containerEl.createEl("h2", { text: "Settings for my awesome plugin." });
-
-// 		new Setting(containerEl)
-// 			.setName("Setting #1")
-// 			.setDesc("It's a secret")
-// 			.addText((text) =>
-// 				text
-// 					.setPlaceholder("Enter your secret")
-// 					.setValue(this.plugin.settings.mySetting)
-// 					.onChange(async (value) => {
-// 						console.log("Secret: " + value);
-// 						this.plugin.settings.mySetting = value;
-// 						await this.plugin.saveSettings();
-// 					})
-// 			);
-// 	}
-// }
