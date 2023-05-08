@@ -74,6 +74,15 @@ export default class MyPlugin extends Plugin {
 
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass("my-plugin-ribbon-class");
+
+		// Add a beforeunload event listener to set the active file path to null
+		window.addEventListener("beforeunload", () => {
+			fs.writeFile("/tmp/obsidian-active-file.txt", "", (err) => {
+				if (err) {
+					console.error("Error writing active file path:", err);
+				}
+			});
+		});
 	}
 
 	onunload() {
