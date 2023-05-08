@@ -29,8 +29,8 @@ export default class MyPlugin extends Plugin {
 				// Remove the "?number" suffix from the file path
 				filePath = filePath.replace(/\?\d+$/, "");
 
-				// Replace the "%20" characters with escaped spaces
-				filePath = filePath.replace(/%20/g, "\\ ");
+				// Replace the "%20" characters with spaces
+				filePath = decodeURIComponent(filePath);
 			}
 
 			fs.writeFile(
@@ -61,8 +61,8 @@ export default class MyPlugin extends Plugin {
 					// Remove the "?number" suffix from the file path
 					filePath = filePath.replace(/\?\d+$/, "");
 
-					// Replace the "%20" characters with escaped spaces
-					filePath = filePath.replace(/%20/g, "\\ ");
+					// Replace the "%20" characters with spaces
+					filePath = decodeURIComponent(filePath);
 				}
 				if (!filePath) {
 					new Notice("No active file!");
